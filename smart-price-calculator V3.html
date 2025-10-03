@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Price Calculator</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0; 
+      padding: 20px 0;
+      background: #f0f7f4;
+      color: #2d3748;
+    }
+    .container {
+      max-width: 550px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 20px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+    }
+    h2 {
+      text-align: center;
+      color: #229677;
+      margin-top: 0;
+      margin-bottom: 28px;
+      font-size: 22px;
+    }
+    .input-unit-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .input-unit-group input {
+      flex: 1;
+    }
+    .input-unit-group select {
+      width: 120px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #4a5568;
+    }
+    .unit-tip {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #718096;
+      font-weight: normal;
+    }
+    input, select {
+      padding: 11px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: all 0.3s;
+      background: #f9fafb;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #229677;
+      box-shadow: 0 0 0 3px rgba(34, 150, 119, 0.1);
+    }
+    .mode-switch {
+      margin-bottom: 24px;
+    }
+    .result {
+      margin-top: 24px;
+      padding: 14px;
+      background: #edf7f4;
+      border-radius: 10px;
+      font-weight: 600;
+      text-align: center;
+      color: #1a7d63;
+      min-height: 28px;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+    /* 历史记录样式 */
+    .history-section {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .history-title {
+      font-weight: 600;
+      color: #229677;
+      margin: 0;
+    }
+    .history-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .history-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      background: #229677;
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .history-btn:hover {
+      background: #1a7d63;
+    }
+    .history-btn.clear {
+      background: #e53e3e;
+    }
+    .history-btn.clear:hover {
+      background: #c53030;
+    }
+    .history-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding: 0 8px;
+    }
+    .history-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .history-item-info {
+      flex: 1;
+    }
+    .history-item-remove {
+      color: #e53e3e;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      font-size: 16px;
+    }
+    .total-sum {
+      padding: 12px;
+      background: #e6fffa;
+      border-radius: 8px;
+      font-weight: 600;
+      text-align: right;
+      color: #0f766e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Smart Price Calculator</h2>
+
+    <!-- 模式切换 -->
+    <div class="mode-switch">
+      <label>Select Calculation Mode:</label>
+      <select id="mode" onchange="switchMode()">
+        <option value="area">Lightbox / Sticker</option>
+        <option value="height">3D Cut-out / Box-up</option>
+      </select>
+    </div>
+
+    <!-- Lightbox / Sticker模式 -->
+    <div id="areaMode">
+      <div class="form-group">
+        <label>Length:
+          <span class="unit-tip">Unit will sync with width</span>
+        </label>
+        <div class="input-unit-group">
+          <input type="number" id="length" placeholder="Enter length (e.g. 100)" min="0">
+          <select id="lengthUnit" onchange="syncUnits('length')">
+            <option value="mm">mm</option>
+            <option value="cm">cm</option>
+            <option value="inch">inch</option>
+            <option value="ft">ft</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Width:
+          <span class="unit-tip">Unit will sync with length</span>
+        </label>
+        <div class="input-unit-group">
+          <input type="number" id="width" placeholder="Enter width (e.g. 50)" min="0">
+          <select id="widthUnit" onchange="syncUnits('width')">
+            <option value="mm">mm</option>
+            <option value="cm">cm</option>
+            <option value="inch">inch</option>
+            <option value="ft">ft</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Price per area unit:
+          <span class="unit-tip">Select area unit for price</span>
+        </label>
+        <div class="input-unit-group">
+          <input type="number" id="pricePerArea" placeholder="Enter price (e.g. 15)" min="0">
+          <select id="priceAreaUnit" onchange="calculate()">
+            <option value="sqft">per sqft</option>
+            <option value="sqm">per sqm</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="result" id="areaResult">Enter values to see result</div>
+    </div>
+
+    <!-- 3D Cut-out / Box-up模式（仅显示单位缩写） -->
+    <div id="heightMode" style="display:none;">
+      <label>Height:
+        <span class="unit-tip">Will be converted to inch and mm</span>
+      </label>
+      <div class="input-unit-group">
+        <input type="number" id="singleHeight" placeholder="Enter height (e.g. 80)" min="0">
+        <select id="singleHeightUnit" onchange="calculate()">
+          <option value="mm">mm</option>
+          <option value="cm">cm</option>
+          <option value="inch">inch</option>
+          <option value="ft">ft</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-top: 16px;">
+        <div style="display: flex; gap: 12px;">
+          <div style="flex: 1;">
+            <label>Quantity:
+              <span class="unit-tip">Minimum 1</span>
+            </label>
+            <input type="number" id="quantity" value="1" min="1" style="width: 100%;">
+          </div>
+          <div style="flex: 1;">
+            <label>Price per unit:
+              <span class="unit-tip">Based on selected calculation unit</span>
+            </label>
+            <input type="number" id="pricePerUnit" placeholder="Enter price (e.g. 2)" min="0" style="width: 100%;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 计算基准单位选择（仅显示缩写） -->
+      <div class="form-group">
+        <label>Calculate based on:
+          <span class="unit-tip">Select unit for price calculation</span>
+        </label>
+        <select id="calculationUnit" onchange="calculate()">
+          <option value="inch">inch</option>
+          <option value="mm">mm</option>
+        </select>
+      </div>
+
+      <div class="result" id="heightResult">Enter values to see result</div>
+    </div>
+
+    <!-- 添加到历史记录按钮 -->
+    <div style="text-align: center; margin-top: 16px;">
+      <button class="history-btn" onclick="addToHistory()">Add to History</button>
+    </div>
+
+    <!-- 历史记录区域 -->
+    <div class="history-section">
+      <div class="history-header">
+        <h3 class="history-title">Calculation History</h3>
+        <div class="history-actions">
+          <button class="history-btn" onclick="calculateSum()">Calculate Total</button>
+          <button class="history-btn clear" onclick="clearHistory()">Clear All</button>
+        </div>
+      </div>
+      
+      <div class="history-list" id="historyList">
+        <!-- 历史记录将在这里动态显示 -->
+        <div style="text-align: center; padding: 20px; color: #718096; font-size: 14px;">
+          No calculations in history yet
+        </div>
+      </div>
+      
+      <div class="total-sum" id="totalSum">
+        Total: 0.00
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 存储历史记录
+    let calculationHistory = [];
+    
+    // 切换计算模式
+    function switchMode() {
+      const mode = document.getElementById("mode").value;
+      document.getElementById("areaMode").style.display = mode === "area" ? "block" : "none";
+      document.getElementById("heightMode").style.display = mode === "height" ? "block" : "none";
+      calculate();
+    }
+
+    // 同步长度和宽度单位
+    function syncUnits(source) {
+      const lengthUnit = document.getElementById("lengthUnit");
+      const widthUnit = document.getElementById("widthUnit");
+      
+      if (source === "length") {
+        widthUnit.value = lengthUnit.value;
+      } else {
+        lengthUnit.value = widthUnit.value;
+      }
+      
+      calculate();
+    }
+
+    // 单位换算：转换为毫米(mm)
+    function toMM(value, unit) {
+      switch(unit) {
+        case "cm": return value * 10;
+        case "inch": return value * 25.4;
+        case "ft": return value * 304.8;
+        default: return value; // mm
+      }
+    }
+
+    // 单位换算：转换为英寸(inch)
+    function toInch(value, unit) {
+      switch(unit) {
+        case "mm": return value / 25.4;
+        case "cm": return value / 2.54;
+        case "ft": return value * 12;
+        default: return value; // inch
+      }
+    }
+
+    // 面积单位换算
+    function mm2ToSelectedArea(mm2, targetUnit) {
+      switch(targetUnit) {
+        case "sqft": return mm2 / 92903.04;
+        case "sqm": return mm2 / 1000000;
+        default: return mm2 / 92903.04;
+      }
+    }
+
+    // 主计算函数
+    function calculate() {
+      const mode = document.getElementById("mode").value;
+      return mode === "area" ? calculateArea() : calculateHeight();
+    }
+
+    // Lightbox / Sticker模式计算
+    function calculateArea() {
+      const length = parseFloat(document.getElementById("length").value) || 0;
+      const width = parseFloat(document.getElementById("width").value) || 0;
+      const lengthUnit = document.getElementById("lengthUnit").value;
+      const widthUnit = document.getElementById("widthUnit").value;
+      const pricePerArea = parseFloat(document.getElementById("pricePerArea").value) || 0;
+      const priceAreaUnit = document.getElementById("priceAreaUnit").value;
+
+      if (length <= 0 || width <= 0 || pricePerArea <= 0) {
+        document.getElementById("areaResult").innerText = "Please enter valid positive numbers.";
+        return null;
+      }
+
+      const lengthMM = toMM(length, lengthUnit);
+      const widthMM = toMM(width, widthUnit);
+      const areaMM2 = lengthMM * widthMM;
+      const selectedArea = mm2ToSelectedArea(areaMM2, priceAreaUnit);
+      const totalPrice = selectedArea * pricePerArea;
+
+      const resultText = `Area: ${selectedArea.toFixed(2)} ${priceAreaUnit} | Total Price: ${totalPrice.toFixed(2)}`;
+      document.getElementById("areaResult").innerText = resultText;
+      
+      return {
+        type: "Lightbox / Sticker",
+        details: `${length} ${lengthUnit} × ${width} ${widthUnit}`,
+        price: totalPrice
+      };
+    }
+
+    // 3D Cut-out / Box-up模式计算（仅显示单位缩写）
+    function calculateHeight() {
+      const height = parseFloat(document.getElementById("singleHeight").value) || 0;
+      const inputUnit = document.getElementById("singleHeightUnit").value;
+      const pricePerUnit = parseFloat(document.getElementById("pricePerUnit").value) || 0;
+      const quantity = parseInt(document.getElementById("quantity").value) || 1;
+      const calculationUnit = document.getElementById("calculationUnit").value; // 计算基准单位（仅缩写）
+
+      if (height <= 0 || pricePerUnit <= 0 || quantity < 1) {
+        document.getElementById("heightResult").innerText = "Please enter valid positive numbers.";
+        return null;
+      }
+
+      // 转换为英寸(inch)和毫米(mm)
+      const heightInch = toInch(height, inputUnit);
+      const heightMM = toMM(height, inputUnit);
+      
+      // 根据选择的计算单位计算总价
+      let totalPrice;
+      if (calculationUnit === "inch") {
+        totalPrice = heightInch * pricePerUnit * quantity;
+      } else {
+        totalPrice = heightMM * pricePerUnit * quantity;
+      }
+
+      // 结果中仅显示单位缩写
+      const resultText = `Height: ${height} ${inputUnit} → ${heightInch.toFixed(2)} inch / ${heightMM.toFixed(2)} mm | Qty: ${quantity} | Calculated by ${calculationUnit} | Total Price: ${totalPrice.toFixed(2)}`;
+      document.getElementById("heightResult").innerText = resultText;
+      
+      return {
+        type: "3D Cut-out / Box-up",
+        details: `${height} ${inputUnit} → ${heightInch.toFixed(2)} inch / ${heightMM.toFixed(2)} mm × ${quantity} pcs (by ${calculationUnit})`,
+        price: totalPrice
+      };
+    }
+
+    // 添加当前计算结果到历史记录
+    function addToHistory() {
+      const calculationResult = calculate();
+      
+      if (calculationResult) {
+        const timestamp = new Date();
+        calculationResult.time = timestamp.toLocaleString();
+        calculationHistory.push(calculationResult);
+        renderHistory();
+      }
+    }
+
+    // 渲染历史记录
+    function renderHistory() {
+      const historyList = document.getElementById("historyList");
+      
+      if (calculationHistory.length === 0) {
+        historyList.innerHTML = `
+          <div style="text-align: center; padding: 20px; color: #718096; font-size: 14px;">
+            No calculations in history yet
+          </div>
+        `;
+        return;
+      }
+      
+      let historyHTML = "";
+      calculationHistory.forEach((item, index) => {
+        historyHTML += `
+          <div class="history-item">
+            <div class="history-item-info">
+              <div><strong>${item.type}</strong></div>
+              <div style="font-size: 12px; color: #718096;">${item.details} · ${item.time}</div>
+            </div>
+            <div style="margin: 0 12px; font-weight: 600;">${item.price.toFixed(2)}</div>
+            <button class="history-item-remove" onclick="removeFromHistory(${index})">×</button>
+          </div>
+        `;
+      });
+      
+      historyList.innerHTML = historyHTML;
+    }
+
+    // 从历史记录中移除一项
+    function removeFromHistory(index) {
+      calculationHistory.splice(index, 1);
+      renderHistory();
+      calculateSum();
+    }
+
+    // 计算历史记录总和
+    function calculateSum() {
+      const total = calculationHistory.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById("totalSum").innerText = `Total: ${total.toFixed(2)}`;
+      return total;
+    }
+
+    // 清空历史记录
+    function clearHistory() {
+      if (confirm("Are you sure you want to clear all history?")) {
+        calculationHistory = [];
+        renderHistory();
+        calculateSum();
+      }
+    }
+
+    // 输入变化时自动计算
+    document.querySelectorAll("input, select").forEach(el => {
+      if (el.id !== "lengthUnit" && el.id !== "widthUnit") {
+        el.addEventListener("input", calculate);
+      }
+    });
+
+    // 初始加载触发计算
+    window.onload = () => {
+      calculate();
+      renderHistory();
+    };
+  </script>
+</body>
+</html>
+    
